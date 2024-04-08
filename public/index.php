@@ -122,9 +122,57 @@ $app->post('/loginflutter', function (Request $request, Response $response) {
         $response->getBody()->write(json_encode(['success' => false, 'message' => 'catcherror ']));
         }
 
-    return $response->withHeader('Content-Type', 'application/json');;
+    return $response->withHeader('Content-Type', 'application/json');
     
 });
+
+$app->post('/registrationflutter',function(Request $request,Response $response){
+    $data =  json_decode(file_get_contents('php://input'), true);  
+    $empty = 0;
+    $name = $data['name'];
+    $gmail = $data['gmail'];
+    $password = $data['password'];
+    $confirmpassword = $data['confirmPassword'];
+    if($password!=$confirmpassword){
+        $response->getBody()->write(json_encode(['success' => false, 'message' => "password and confirmpassword doesn't match "]));
+        $empty = 2;
+    }
+   
+    $dsn="mysql:host=localhost:3308;dbname=pixel";
+    $dbusername="root";
+    $dbpass="";
+    try{
+        $pdo = new PDO($dsn,$dbusername,$dbpass);
+        $pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
+        $query = "INSERT INTO registration(name, gmail, password, confirmPassword) VALUES (:name, :gmail, :password, :confirmPassword);";
+        $stmt = $pdo->prepare($query);
+        $stmt->bindParam(':name',$name);
+        $stmt->bindParam(':gmail',$gmail);
+        $timing=[
+            'cost' => 12
+        ];
+        $hshedpwd=password_hash($password,PASSWORD_BCRYPT,$timing);
+        $stmt->bindParam(':password',$hshedpwd);
+        $hashedconpwd=password_hash($confirmpassword,PASSWORD_BCRYPT,$timing);
+        $stmt->bindParam(':confirmPassword',$hashedconpwd);
+        
+        if($empty){
+            $response->getBody()->write(json_encode(['success' => false, 'message' => "Please enter all fields"]));
+        }else{
+            $stmt->execute();
+            $response->getBody()->write(json_encode(['success' => true, 'message' => 'Successfully Registered']));
+
+        }
+    }catch(PDOException $e){
+        $response->getBody()->write(json_encode(['success' => false, 'message' => 'catcherror'.$e->getMessage()]));
+
+    }
+    return $response->withHeader('Content-Type', 'application/json');
+
+});
+
+
+
 
 $app->run();
 
