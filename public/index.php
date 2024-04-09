@@ -146,12 +146,9 @@ $app->post('/registrationflutter',function(Request $request,Response $response){
     if(gmail_verify($gmail)==true){
         $empty = 3;
     }
-    $dsn="mysql:host=localhost:3308;dbname=pixel";
-    $dbusername="root";
-    $dbpass="";
+    
     try{
-        $pdo = new PDO($dsn,$dbusername,$dbpass);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
+        require_once('../backend/dbconnection.php');
         $query = "INSERT INTO registration(name, gmail, password, confirmPassword) VALUES (:name, :gmail, :password, :confirmPassword);";
         $stmt = $pdo->prepare($query);
         $stmt->bindParam(':name',$name);
@@ -186,7 +183,15 @@ $app->post('/registrationflutter',function(Request $request,Response $response){
     
 });
 
-
+$app->get('/components',function(Request $request,Response $response){
+   require_once('../backend/dbconnection.php');
+   $query="SELECT Component_name FROM main";
+   $stmt=$pdo->prepare($query);
+   $stmt->execute();
+   $result=$stmt->fetchAll(PDO::FETCH_ASSOC);
+   $response->getBody()->write(json_encode($result));
+   return $response->withHeader('Content-Type', 'application/json');
+});
 
 
 $app->run();
