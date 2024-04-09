@@ -134,10 +134,18 @@ $app->post('/registrationflutter',function(Request $request,Response $response){
     $password = $data['password'];
     $confirmpassword = $data['confirmPassword'];
     if($password!=$confirmpassword){
-        $response->getBody()->write(json_encode(['success' => false, 'message' => "password and confirmpassword doesn't match "]));
         $empty = 2;
     }
-   
+    function gmail_verify($gmail){
+            if (strpos($gmail,'pixelexpert.net') > 0) {
+                return false; 
+            } else {
+                return true;
+        }     
+    }
+    if(gmail_verify($gmail)==true){
+        $empty = 3;
+    }
     $dsn="mysql:host=localhost:3308;dbname=pixel";
     $dbusername="root";
     $dbpass="";
@@ -148,6 +156,7 @@ $app->post('/registrationflutter',function(Request $request,Response $response){
         $stmt = $pdo->prepare($query);
         $stmt->bindParam(':name',$name);
         $stmt->bindParam(':gmail',$gmail);
+        
         $timing=[
             'cost' => 12
         ];
@@ -156,9 +165,15 @@ $app->post('/registrationflutter',function(Request $request,Response $response){
         $hashedconpwd=password_hash($confirmpassword,PASSWORD_BCRYPT,$timing);
         $stmt->bindParam(':confirmPassword',$hashedconpwd);
         
-        if($empty){
+        if($empty==1){
             $response->getBody()->write(json_encode(['success' => false, 'message' => "Please enter all fields"]));
-        }else{
+        }elseif($empty==2){
+            $response->getBody()->write(json_encode(['success' => false, 'message' => "password and confirmpassword doesn't match "]));
+        }
+        elseif($empty==3){
+            $response->getBody()->write(json_encode(['success' => false, 'message' => "gamil need to be pixel"]));
+        }
+        elseif($empty==0){
             $stmt->execute();
             $response->getBody()->write(json_encode(['success' => true, 'message' => 'Successfully Registered']));
 
@@ -168,7 +183,7 @@ $app->post('/registrationflutter',function(Request $request,Response $response){
 
     }
     return $response->withHeader('Content-Type', 'application/json');
-
+    
 });
 
 
