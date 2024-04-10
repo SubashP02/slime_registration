@@ -102,6 +102,11 @@ $app->post('/loginflutter', function (Request $request, Response $response) {
     $data =  json_decode(file_get_contents('php://input'), true);  
     $gmail=$data['Gmail'];
     $pwd=$data['Password'];
+    // print_r($data);
+    if(strlen($gmail)==0&&strlen($pwd)==0){
+        $response->getBody()->write(json_encode(['success' => false, 'message' => 'Username and Passsword should not be empty']));
+        return $response;
+    }
     $dsn="mysql:host=localhost:3308;dbname=pixel";
     $dbname="root";
     $dbpass="";
@@ -111,12 +116,13 @@ $app->post('/loginflutter', function (Request $request, Response $response) {
         $query="SELECT * FROM userdetails WHERE gmail= :Gmail;";
         $stmt=$pdo->prepare($query);
         $stmt->bindParam(':Gmail',$gmail);
+        
         $stmt->execute();
         $result=$stmt->fetch(PDO::FETCH_ASSOC);
-        if($pwd==$result['password']){
+        if($gmail==$result['gmail']&&$pwd==$result['password']){
             $response->getBody()->write(json_encode(['success' => true, 'message' => 'Successfully logged in']));
         }else{
-            $response->getBody()->write(json_encode(['success' => false, 'message' => 'Unsuccessfully ']));
+            $response->getBody()->write(json_encode(['success' => false, 'message' => 'Gmail id or password does not exists please register']));
         }
     } catch (PDOException $e) {
         $response->getBody()->write(json_encode(['success' => false, 'message' => 'catcherror ']));
@@ -128,27 +134,40 @@ $app->post('/loginflutter', function (Request $request, Response $response) {
 
 $app->post('/registrationflutter',function(Request $request,Response $response){
     $data =  json_decode(file_get_contents('php://input'), true);  
-    $empty = 0;
     $name = $data['name'];
     $gmail = $data['gmail'];
     $password = $data['password'];
     $confirmpassword = $data['confirmPassword'];
+    if(strlen($name)==0&&strlen($gmail)==0&&strlen($password)&&strlen($confirmpassword)==0){
+        $response->getBody()->write(json_encode(['success' => false, 'message' => 'Fields are should not be empty']));
+        return $response;
+    }
     if($password!=$confirmpassword){
-        $empty = 2;
+        $response->getBody()->write(json_encode(['success' => false, 'message' => "password and confirmpassword doesn't match "]));
+        return $response;
     }
     function gmail_verify($gmail){
-            if (strpos($gmail,'pixelexpert.net') > 0) {
+            if (strpos($gmail,'@pixelexpert.net') > 0) {
                 return false; 
             } else {
                 return true;
         }     
     }
     if(gmail_verify($gmail)==true){
-        $empty = 3;
+        $response->getBody()->write(json_encode(['success' => false, 'message' => "provide pixel expert email "]));
+        return $response;
     }
     
     try{
         require_once('../backend/dbconnection.php');
+        $emailvalidquerry = "SELECT gmail FROM registration;";
+        $stmt = $pdo->prepare($query);
+        $stmt->execute();
+        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        if($gmail!=$result['gmail']){
+            $response->getBody()->write(json_encode(['success' => false, 'message' => 'user already Registered']));
+            return $response;
+        }
         $query = "INSERT INTO registration(name, gmail, password, confirmPassword) VALUES (:name, :gmail, :password, :confirmPassword);";
         $stmt = $pdo->prepare($query);
         $stmt->bindParam(':name',$name);
@@ -161,20 +180,8 @@ $app->post('/registrationflutter',function(Request $request,Response $response){
         $stmt->bindParam(':password',$hshedpwd);
         $hashedconpwd=password_hash($confirmpassword,PASSWORD_BCRYPT,$timing);
         $stmt->bindParam(':confirmPassword',$hashedconpwd);
-        
-        if($empty==1){
-            $response->getBody()->write(json_encode(['success' => false, 'message' => "Please enter all fields"]));
-        }elseif($empty==2){
-            $response->getBody()->write(json_encode(['success' => false, 'message' => "password and confirmpassword doesn't match "]));
-        }
-        elseif($empty==3){
-            $response->getBody()->write(json_encode(['success' => false, 'message' => "gamil need to be pixel"]));
-        }
-        elseif($empty==0){
-            $stmt->execute();
-            $response->getBody()->write(json_encode(['success' => true, 'message' => 'Successfully Registered']));
-
-        }
+        $stmt->execute();
+        $response->getBody()->write(json_encode(['success' => true, 'message' => 'Successfully Registered']));
     }catch(PDOException $e){
         $response->getBody()->write(json_encode(['success' => false, 'message' => 'catcherror'.$e->getMessage()]));
 
